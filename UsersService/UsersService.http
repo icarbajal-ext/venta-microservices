@@ -1,0 +1,50 @@
+@UsersService_HostAddress = http://localhost:5110
+
+GET {{UsersService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+### UsersService API Tests
+
+### 1. Register a new user
+POST https://localhost:7001/auth/register
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "email": "testuser@example.com",
+    "password": "password123"
+}
+
+### 2. Login with existing user
+POST https://localhost:7001/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "password123"
+}
+
+### 3. Login with new user
+POST https://localhost:7001/auth/login
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "password": "password123"
+}
+
+### 4. Get current user profile (requires authentication)
+GET https://localhost:7001/users/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### 5. Get all users (Admin only)
+GET https://localhost:7001/users
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+
+### 6. Get user by ID
+GET https://localhost:7001/users/1
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Sample tokens (replace with actual tokens from login):
+# Admin token example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# User token example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

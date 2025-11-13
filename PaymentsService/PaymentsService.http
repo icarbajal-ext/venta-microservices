@@ -1,0 +1,41 @@
+@PaymentsService_HostAddress = http://localhost:5037
+
+GET {{PaymentsService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+### PaymentsService API Tests
+
+### 1. Get all payments (protected endpoint - requires authentication)
+GET https://localhost:7003/payments
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+### 2. Get payment by ID (protected endpoint - requires authentication)
+GET https://localhost:7003/payments/1
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+### 3. Create new payment (protected endpoint - requires authentication)
+POST https://localhost:7003/payments
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+    "id": 0,
+    "orderId": 104,
+    "amount": 599.99,
+    "paymentMethod": "Credit Card",
+    "paymentDate": "2024-01-01T00:00:00",
+    "status": "Pending"
+}
+
+### 4. Update payment status (protected endpoint - requires authentication)
+PUT https://localhost:7003/payments/1/status?status=Completed
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### 5. Get specific payment
+GET https://localhost:7003/payments/2
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+### Note: Replace YOUR_JWT_TOKEN_HERE with actual JWT token from UsersService login

@@ -1,0 +1,53 @@
+@LogsService_HostAddress = http://localhost:5299
+
+GET {{LogsService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+### LogsService API Tests
+
+### 1. Get all logs (Admin only - requires admin authentication)
+GET https://localhost:7004/logs
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+Accept: application/json
+
+### 2. Get logs by service (Admin only)
+GET https://localhost:7004/logs/service/UsersService
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+Accept: application/json
+
+### 3. Get logs by service - ProductsService
+GET https://localhost:7004/logs/service/ProductsService
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+Accept: application/json
+
+### 4. Get logs by level - ERROR
+GET https://localhost:7004/logs/level/ERROR
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+Accept: application/json
+
+### 5. Get logs by level - INFO
+GET https://localhost:7004/logs/level/INFO
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+Accept: application/json
+
+### 6. Create new log entry (requires authentication)
+POST https://localhost:7004/logs
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+    "service": "TestService",
+    "level": "INFO",
+    "message": "Test log message created via API"
+}
+
+### 7. Get logs by date range (Admin only)
+GET https://localhost:7004/logs/date-range?from=2024-11-13T00:00:00&to=2024-11-13T23:59:59
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+Accept: application/json
+
+### Note: 
+# Replace YOUR_JWT_TOKEN_HERE with actual JWT token from UsersService login
+# Replace YOUR_ADMIN_JWT_TOKEN_HERE with admin JWT token (username: admin, password: password123)

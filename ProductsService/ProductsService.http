@@ -1,0 +1,35 @@
+@ProductsService_HostAddress = http://localhost:5217
+
+GET {{ProductsService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+### ProductsService API Tests
+
+### 1. Get all products (public endpoint - no authentication required)
+GET https://localhost:7002/products
+Accept: application/json
+
+### 2. Get product by ID (protected endpoint - requires authentication)
+GET https://localhost:7002/products/1
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+### 3. Create new product (protected endpoint - requires authentication)
+POST https://localhost:7002/products
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+    "id": 0,
+    "name": "New Laptop",
+    "description": "High-performance gaming laptop",
+    "price": 1299.99,
+    "category": "Electronics"
+}
+
+### 4. Get specific product by ID
+GET https://localhost:7002/products/2
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+### Note: Replace YOUR_JWT_TOKEN_HERE with actual JWT token from UsersService login
