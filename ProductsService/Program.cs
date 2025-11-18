@@ -1,10 +1,17 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using ProductsService.Data;
+using ProductsService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+// Database Configuration
+builder.Services.AddDbContext<ProductsDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -17,15 +24,61 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
         };
     });
 
 builder.Services.AddAuthorization();
 
+// Add Controllers
+builder.Services.AddControllers();
+
+// Register Services
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Products Service API", Version = "v1" });
+    
+    // JWT Authentication configuration for Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -36,49 +89,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Apply migrations automatically
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ProductsDbContext>();
+    context.Database.EnsureCreated(); // For development - use migrations in production
+}
+
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");
 
 // Enable authentication and authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sample products data
-var products = new List<Product>
-{
-    new Product(1, "Laptop Dell", "Laptop Dell Inspiron 15", 799.99m, "Electronics"),
-    new Product(2, "iPhone 15", "Smartphone Apple iPhone 15", 999.99m, "Electronics"),
-    new Product(3, "Desk Chair", "Ergonomic office chair", 249.99m, "Furniture")
-};
-
-// Public endpoint - no authentication required
-app.MapGet("/products", () =>
-{
-    return Results.Ok(products);
-})
-.WithName("GetProducts")
-.WithOpenApi();
-
-// Protected endpoint - requires authentication
-app.MapGet("/products/{id}", (int id) =>
-{
-    var product = products.FirstOrDefault(p => p.Id == id);
-    return product != null ? Results.Ok(product) : Results.NotFound();
-})
-.RequireAuthorization()
-.WithName("GetProduct")
-.WithOpenApi();
-
-// Protected endpoint - requires authentication
-app.MapPost("/products", (Product product) =>
-{
-    var newProduct = product with { Id = products.Max(p => p.Id) + 1 };
-    products.Add(newProduct);
-    return Results.Created($"/products/{newProduct.Id}", newProduct);
-})
-.RequireAuthorization()
-.WithName("CreateProduct")
-.WithOpenApi();
+// Map Controllers
+app.MapControllers();
 
 app.Run();
-
-record Product(int Id, string Name, string Description, decimal Price, string Category);

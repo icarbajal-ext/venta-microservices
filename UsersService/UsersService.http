@@ -3,20 +3,27 @@
 GET {{UsersService_HostAddress}}/weatherforecast/
 Accept: application/json
 
-### UsersService API Tests
+### UsersService API Tests - MVC Architecture
+
+### Variables
+@baseUrl = https://localhost:7001
+@adminToken = 
+@userToken = 
 
 ### 1. Register a new user
-POST https://localhost:7001/auth/register
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
     "username": "testuser",
     "email": "testuser@example.com",
-    "password": "password123"
+    "password": "password123",
+    "firstName": "Test",
+    "lastName": "User"
 }
 
-### 2. Login with existing user
-POST https://localhost:7001/auth/login
+### 2. Login with admin user
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
@@ -24,27 +31,54 @@ Content-Type: application/json
     "password": "password123"
 }
 
-### 3. Login with new user
-POST https://localhost:7001/auth/login
+### 3. Login with regular user
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "testuser",
+    "username": "user1",
     "password": "password123"
 }
 
 ### 4. Get current user profile (requires authentication)
-GET https://localhost:7001/users/profile
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+GET {{baseUrl}}/api/users/profile
+Authorization: Bearer {{userToken}}
 
 ### 5. Get all users (Admin only)
-GET https://localhost:7001/users
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{adminToken}}
 
-### 6. Get user by ID
-GET https://localhost:7001/users/1
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 6. Get user by ID (self or admin)
+GET {{baseUrl}}/api/users/1
+Authorization: Bearer {{adminToken}}
 
-### Sample tokens (replace with actual tokens from login):
-# Admin token example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-# User token example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+### 7. Update user profile
+PUT {{baseUrl}}/api/users/profile
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+    "email": "newemail@example.com",
+    "firstName": "Updated",
+    "lastName": "Name"
+}
+
+### 8. Change password
+POST {{baseUrl}}/api/users/change-password
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+    "currentPassword": "password123",
+    "newPassword": "newpassword123"
+}
+
+### 9. Deactivate user (Admin only)
+DELETE {{baseUrl}}/api/users/2
+Authorization: Bearer {{adminToken}}
+
+### Instructions:
+# 1. First, do login requests (#2 or #3) to get tokens
+# 2. Copy the "token" value from the response
+# 3. Replace {{adminToken}} or {{userToken}} with the actual token
+# 4. Run the protected endpoints

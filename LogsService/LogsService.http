@@ -5,49 +5,85 @@ Accept: application/json
 
 ###
 
-### LogsService API Tests
+### LogsService API Tests - MVC Architecture
 
-### 1. Get all logs (Admin only - requires admin authentication)
-GET https://localhost:7004/logs
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+### Variables
+@baseUrl = https://localhost:7004
+@token = 
+
+### 1. Get all logs (Admin only)
+GET {{baseUrl}}/api/logs
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 2. Get logs by service (Admin only)
-GET https://localhost:7004/logs/service/UsersService
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+### 2. Search logs with filters
+GET {{baseUrl}}/api/logs/search?service=UsersService&level=ERROR&fromDate=2024-01-01&toDate=2024-12-31&page=1&pageSize=20
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 3. Get logs by service - ProductsService
-GET https://localhost:7004/logs/service/ProductsService
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+### 3. Get my logs (current user)
+GET {{baseUrl}}/api/logs/my-logs
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 4. Get logs by level - ERROR
-GET https://localhost:7004/logs/level/ERROR
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+### 4. Get log by ID (Admin only)
+GET {{baseUrl}}/api/logs/1
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 5. Get logs by level - INFO
-GET https://localhost:7004/logs/level/INFO
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+### 5. Get logs by service (Admin only)
+GET {{baseUrl}}/api/logs/service/ProductsService
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 6. Create new log entry (requires authentication)
-POST https://localhost:7004/logs
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 6. Get logs by level (Admin only)
+GET {{baseUrl}}/api/logs/level/ERROR
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 7. Create new log entry
+POST {{baseUrl}}/api/logs
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-    "service": "TestService",
+    "service": "UsersService",
     "level": "INFO",
-    "message": "Test log message created via API"
+    "message": "User performed action successfully",
+    "requestId": "REQ-TEST-001",
+    "ipAddress": "192.168.1.105",
+    "additionalData": "Action: UpdateProfile"
 }
 
-### 7. Get logs by date range (Admin only)
-GET https://localhost:7004/logs/date-range?from=2024-11-13T00:00:00&to=2024-11-13T23:59:59
-Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+### 8. Get log summary (Admin only)
+GET {{baseUrl}}/api/logs/summary?fromDate=2024-01-01&toDate=2024-12-31
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### Note: 
-# Replace YOUR_JWT_TOKEN_HERE with actual JWT token from UsersService login
-# Replace YOUR_ADMIN_JWT_TOKEN_HERE with admin JWT token (username: admin, password: password123)
+### 9. Get log statistics (Admin only)
+GET {{baseUrl}}/api/logs/stats?fromDate=2024-01-01&toDate=2024-12-31
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 10. Get log count (Admin only)
+GET {{baseUrl}}/api/logs/count?service=PaymentsService&level=ERROR
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 11. Delete old logs (Admin only)
+DELETE {{baseUrl}}/api/logs/cleanup?beforeDate=2024-01-01
+Authorization: Bearer {{token}}
+
+### 12. Get available services (public)
+GET {{baseUrl}}/api/logs/services
+Accept: application/json
+
+### 13. Get available log levels (public)
+GET {{baseUrl}}/api/logs/levels
+Accept: application/json
+
+### Instructions:
+# 1. Get a JWT token from UsersService login
+# 2. Replace {{token}} with the actual token
+# 3. Admin token required for most endpoints
+# 4. Regular users can only see their own logs and create log entries

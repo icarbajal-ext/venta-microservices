@@ -1,12 +1,17 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using UsersService.Data;
+using UsersService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+// Database Configuration - SQLite
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -19,14 +24,60 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
         };
     });
 
 builder.Services.AddAuthorization();
 
+// Add Controllers
+builder.Services.AddControllers();
+
+// Register Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Users Service API", Version = "v1" });
+    
+    // JWT Authentication configuration for Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -37,143 +88,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Apply migrations automatically
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.EnsureCreated(); // For development - use migrations in production
+}
+
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");
 
 // Enable authentication and authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sample users data (in a real app, this would come from a database)
-var users = new List<User>
-{
-    new User(1, "admin", "admin@example.com", "password123", "Admin", DateTime.Now.AddMonths(-6)),
-    new User(2, "user1", "user1@example.com", "password123", "User", DateTime.Now.AddMonths(-3)),
-    new User(3, "user2", "user2@example.com", "password123", "User", DateTime.Now.AddMonths(-1))
-};
-
-// Public endpoint - Login
-app.MapPost("/auth/login", (LoginRequest request) =>
-{
-    var user = users.FirstOrDefault(u => u.Username == request.Username && u.Password == request.Password);
-    
-    if (user == null)
-    {
-        return Results.Unauthorized();
-    }
-
-    var token = GenerateJwtToken(user, builder.Configuration);
-    
-    return Results.Ok(new LoginResponse(token, user.Id, user.Username, user.Email, user.Role));
-})
-.WithName("Login")
-.WithOpenApi();
-
-// Public endpoint - Register
-app.MapPost("/auth/register", (RegisterRequest request) =>
-{
-    if (users.Any(u => u.Username == request.Username || u.Email == request.Email))
-    {
-        return Results.BadRequest("User already exists");
-    }
-
-    var newUser = new User(
-        users.Max(u => u.Id) + 1,
-        request.Username,
-        request.Email,
-        request.Password, // In a real app, hash the password
-        "User",
-        DateTime.Now
-    );
-    
-    users.Add(newUser);
-    
-    var token = GenerateJwtToken(newUser, builder.Configuration);
-    
-    return Results.Created($"/users/{newUser.Id}", new LoginResponse(token, newUser.Id, newUser.Username, newUser.Email, newUser.Role));
-})
-.WithName("Register")
-.WithOpenApi();
-
-// Protected endpoint - Get current user profile
-app.MapGet("/users/profile", (HttpContext context) =>
-{
-    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (userId == null) return Results.Unauthorized();
-    
-    var user = users.FirstOrDefault(u => u.Id.ToString() == userId);
-    if (user == null) return Results.NotFound();
-    
-    return Results.Ok(new UserProfile(user.Id, user.Username, user.Email, user.Role, user.CreatedAt));
-})
-.RequireAuthorization()
-.WithName("GetProfile")
-.WithOpenApi();
-
-// Protected endpoint - Get all users (Admin only)
-app.MapGet("/users", (HttpContext context) =>
-{
-    var userRole = context.User.FindFirst(ClaimTypes.Role)?.Value;
-    if (userRole != "Admin")
-    {
-        return Results.Forbid();
-    }
-    
-    var userProfiles = users.Select(u => new UserProfile(u.Id, u.Username, u.Email, u.Role, u.CreatedAt));
-    return Results.Ok(userProfiles);
-})
-.RequireAuthorization()
-.WithName("GetAllUsers")
-.WithOpenApi();
-
-// Protected endpoint - Get user by ID
-app.MapGet("/users/{id}", (int id, HttpContext context) =>
-{
-    var currentUserId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    var userRole = context.User.FindFirst(ClaimTypes.Role)?.Value;
-    
-    // Users can only access their own profile, unless they're admin
-    if (currentUserId != id.ToString() && userRole != "Admin")
-    {
-        return Results.Forbid();
-    }
-    
-    var user = users.FirstOrDefault(u => u.Id == id);
-    if (user == null) return Results.NotFound();
-    
-    return Results.Ok(new UserProfile(user.Id, user.Username, user.Email, user.Role, user.CreatedAt));
-})
-.RequireAuthorization()
-.WithName("GetUser")
-.WithOpenApi();
+// Map Controllers
+app.MapControllers();
 
 app.Run();
-
-static string GenerateJwtToken(User user, IConfiguration configuration)
-{
-    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
-    var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-    var claims = new[]
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new Claim(ClaimTypes.Name, user.Username),
-        new Claim(ClaimTypes.Email, user.Email),
-        new Claim(ClaimTypes.Role, user.Role)
-    };
-
-    var token = new JwtSecurityToken(
-        issuer: configuration["Jwt:Issuer"],
-        audience: configuration["Jwt:Audience"],
-        claims: claims,
-        expires: DateTime.Now.AddMinutes(double.Parse(configuration["Jwt:ExpireMinutes"])),
-        signingCredentials: credentials
-    );
-
-    return new JwtSecurityTokenHandler().WriteToken(token);
-}
-
-record User(int Id, string Username, string Email, string Password, string Role, DateTime CreatedAt);
-record LoginRequest(string Username, string Password);
-record RegisterRequest(string Username, string Email, string Password);
-record LoginResponse(string Token, int UserId, string Username, string Email, string Role);
-record UserProfile(int Id, string Username, string Email, string Role, DateTime CreatedAt);

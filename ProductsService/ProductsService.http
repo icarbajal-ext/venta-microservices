@@ -3,33 +3,97 @@
 GET {{ProductsService_HostAddress}}/weatherforecast/
 Accept: application/json
 
-### ProductsService API Tests
+### ProductsService API Tests - MVC Architecture
 
-### 1. Get all products (public endpoint - no authentication required)
-GET https://localhost:7002/products
+### Variables
+@baseUrl = https://localhost:7002
+@token = 
+
+### 1. Get all categories (public endpoint)
+GET {{baseUrl}}/api/categories
 Accept: application/json
 
-### 2. Get product by ID (protected endpoint - requires authentication)
-GET https://localhost:7002/products/1
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 2. Get all products (public endpoint)
+GET {{baseUrl}}/api/products
 Accept: application/json
 
-### 3. Create new product (protected endpoint - requires authentication)
-POST https://localhost:7002/products
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 3. Search products with filters (public endpoint)
+GET {{baseUrl}}/api/products/search?search=laptop&categoryId=1&minPrice=500&maxPrice=1000&page=1&pageSize=10
+Accept: application/json
+
+### 4. Get category by ID
+GET {{baseUrl}}/api/categories/1
+Accept: application/json
+
+### 5. Get product by ID (requires authentication)
+GET {{baseUrl}}/api/products/1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 6. Create new category (requires authentication)
+POST {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-    "id": 0,
-    "name": "New Laptop",
-    "description": "High-performance gaming laptop",
-    "price": 1299.99,
-    "category": "Electronics"
+    "name": "Sports",
+    "description": "Sports equipment and accessories"
 }
 
-### 4. Get specific product by ID
-GET https://localhost:7002/products/2
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
-Accept: application/json
+### 7. Create new product (requires authentication)
+POST {{baseUrl}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Note: Replace YOUR_JWT_TOKEN_HERE with actual JWT token from UsersService login
+{
+    "name": "Gaming Laptop ASUS ROG",
+    "description": "High-performance gaming laptop with RTX 4080, 32GB RAM",
+    "price": 2499.99,
+    "categoryId": 1,
+    "sku": "ASUS-ROG-G15-001",
+    "stock": 10,
+    "imageUrl": "https://example.com/gaming-laptop.jpg"
+}
+
+### 8. Update product (requires authentication)
+PUT {{baseUrl}}/api/products/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Updated Laptop Dell Inspiron 15",
+    "price": 849.99,
+    "stock": 30
+}
+
+### 9. Update product stock (requires authentication)
+PATCH {{baseUrl}}/api/products/1/stock
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "quantity": 50
+}
+
+### 10. Update category (requires authentication)
+PUT {{baseUrl}}/api/categories/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Electronics & Gadgets",
+    "description": "Updated description for electronics category"
+}
+
+### 11. Delete product (Admin only)
+DELETE {{baseUrl}}/api/products/5
+Authorization: Bearer {{token}}
+
+### 12. Delete category (Admin only)
+DELETE {{baseUrl}}/api/categories/4
+Authorization: Bearer {{token}}
+
+### Instructions:
+# 1. Get a JWT token from UsersService login
+# 2. Replace {{token}} with the actual token
+# 3. Run the requests in order

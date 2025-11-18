@@ -1,41 +1,68 @@
-@PaymentsService_HostAddress = http://localhost:5037
+### PaymentsService API Tests - MVC Architecture
 
-GET {{PaymentsService_HostAddress}}/weatherforecast/
+### Variables
+@baseUrl = https://localhost:7003
+@token = 
+
+### 1. Get all payments (Admin only)
+GET {{baseUrl}}/api/payments
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### PaymentsService API Tests
-
-### 1. Get all payments (protected endpoint - requires authentication)
-GET https://localhost:7003/payments
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 2. Search payments with filters
+GET {{baseUrl}}/api/payments/search?status=Completed&minAmount=100&maxAmount=1000&page=1&pageSize=10
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 2. Get payment by ID (protected endpoint - requires authentication)
-GET https://localhost:7003/payments/1
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 3. Get my payments (current user)
+GET {{baseUrl}}/api/payments/my-payments
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### 3. Create new payment (protected endpoint - requires authentication)
-POST https://localhost:7003/payments
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 4. Get payment by ID
+GET {{baseUrl}}/api/payments/1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 5. Get payments by order ID
+GET {{baseUrl}}/api/payments/order/101
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 6. Create new payment
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-    "id": 0,
-    "orderId": 104,
-    "amount": 599.99,
-    "paymentMethod": "Credit Card",
-    "paymentDate": "2024-01-01T00:00:00",
-    "status": "Pending"
+    "orderId": 105,
+    "amount": 299.99,
+    "paymentMethodId": 1,
+    "description": "Payment for new order",
+    "reference": "ORD-105-PAY"
 }
 
-### 4. Update payment status (protected endpoint - requires authentication)
-PUT https://localhost:7003/payments/1/status?status=Completed
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+### 7. Update payment status (Admin only)
+PUT {{baseUrl}}/api/payments/3/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### 5. Get specific payment
-GET https://localhost:7003/payments/2
-Authorization: Bearer YOUR_JWT_TOKEN_HERE
+{
+    "status": "Completed",
+    "transactionId": "TXN_MANUAL_003"
+}
+
+### 8. Process payment (Admin only)
+POST {{baseUrl}}/api/payments/4/process
+Authorization: Bearer {{token}}
+
+### 9. Get total revenue (Admin only)
+GET {{baseUrl}}/api/payments/revenue/total
+Authorization: Bearer {{token}}
 Accept: application/json
 
-### Note: Replace YOUR_JWT_TOKEN_HERE with actual JWT token from UsersService login
+### Instructions:
+# 1. Get a JWT token from UsersService login
+# 2. Replace {{token}} with the actual token
+# 3. Admin token required for admin-only endpoints
+# 4. Regular user token can access personal payments only
